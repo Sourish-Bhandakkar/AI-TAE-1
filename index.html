@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Medical Treatment Planner</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div class="st-container">
+        <!-- Header Section -->
+        <header class="st-header">
+            <h1><span class="emoji-icon">🏥</span> Medical Treatment Planner</h1>
+            <h3>Powered by Bayesian Reasoning</h3>
+            <hr class="st-divider">
+        </header>
+
+        <!-- Warning Section Removed for College Project -->
+
+
+        <!-- Input Section -->
+        <main class="st-main">
+            <h4>Patient Symptoms Input</h4>
+            
+            <div class="st-multiselect-container">
+                <label for="symptom-input">Check all symptoms that apply to the patient:</label>
+                <div class="st-multiselect" id="multiselect-box">
+                    <div class="st-selected-tags" id="selected-tags">
+                        <!-- Tags will be injected here -->
+                    </div>
+                    <input type="text" id="symptom-input" placeholder="Choose symptoms..." autocomplete="off">
+                </div>
+                <!-- Dropdown Options -->
+                <div class="st-dropdown-options" id="dropdown-options" style="display: none;">
+                    <!-- Options injected via JS -->
+                </div>
+            </div>
+
+            <!-- Error message container -->
+            <div class="st-alert st-error" id="error-message" style="display: none;">
+                <span class="st-icon">❌</span>
+                <div class="st-alert-body">
+                    Please select at least one symptom to get a diagnosis prediction.
+                </div>
+            </div>
+
+            <!-- Buttons -->
+            <div class="st-button-row">
+                <button class="st-btn st-btn-primary" id="btn-submit">Submit Diagnosis</button>
+                <button class="st-btn st-btn-secondary" id="btn-reset">Reset</button>
+            </div>
+            
+            <hr class="st-divider">
+
+            <!-- Results Section (Hidden initially) -->
+            <div id="results-container" class="st-results" style="display: none;">
+                <h2 class="st-results-title">🔍 Diagnosis Results</h2>
+                
+                <!-- Main prediction alert -->
+                <div class="st-alert" id="primary-diagnosis-alert">
+                    <div class="st-alert-body" id="primary-diagnosis-text">
+                        <!-- Filled by JS -->
+                    </div>
+                </div>
+
+                <h3>🏆 Top 3 Probable Conditions</h3>
+                <div class="st-expander-group" id="top-conditions-container">
+                    <!-- Expanders filled by JS -->
+                </div>
+
+                <h3>📊 All Disease Probabilities</h3>
+                <div class="st-probabilities-list" id="all-probabilities-container">
+                    <!-- Progress bars filled by JS -->
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <script src="script.js"></script>
+</body>
+</html>
