@@ -1,4 +1,5 @@
-import streamlit as st
+from flask import Flask, request, jsonify, send_from_directory
+import os
 
 # Medical Treatment Planner using Bayesian Reasoning
 
@@ -72,91 +73,35 @@ def calculate_probabilities(selected_symptoms):
         
     return scores
 
-def get_confidence_level(probability):
-    """Return a confidence categorization based on numerical probability."""
-    if probability >= 0.7:
-        return "High"
-    elif probability >= 0.4:
-        return "Medium"
-    else:
-        return "Low"
+app = Flask(__name__, static_url_path='', static_folder='.')
 
-def main():
-    # Set page config for a modern layout
-    st.set_page_config(page_title="Medical Treatment Planner", page_icon="🏥", layout="centered")
-    
-    # UI Header
-    st.title("🏥 Medical Treatment Planner")
-    st.markdown("### Powered by Bayesian Reasoning")
-    st.divider()
-    
-    # Non-medical diagnosis warning
-    st.warning("⚠️ **Warning: This is an educational AI project and NOT a medical diagnosis.** Please consult a licensed healthcare professional for medical advice.")
-    
-    # Initialize session state for symptoms
-    if 'selected_symptoms' not in st.session_state:
-        st.session_state.selected_symptoms = []
+@app.route('/')
+def serve_index():
+    return send_from_directory('.', 'index.html')
 
-    def reset_app():
-        st.session_state.selected_symptoms = []
-
-    st.markdown("#### Patient Symptoms Input")
+@app.route('/api/symptoms', methods=['GET'])
+def get_symptoms():
     available_symptoms = sorted(list(symptom_likelihood.keys()))
+    return jsonify({"symptoms": available_symptoms})
+
+@app.route('/api/diagnose', methods=['POST'])
+def diagnose():
+    data = request.json
+    selected_symptoms = data.get('symptoms', [])
     
-    # Multiselect widget
-    symptoms_input = st.multiselect(
-        "Check all symptoms that apply to the patient:",
-        options=available_symptoms,
-        key="selected_symptoms",
-        placeholder="Choose symptoms..."
-    )
+    scores = calculate_probabilities(selected_symptoms)
     
-    col1, col2 = st.columns([1, 4])
-    with col1:
-        submit = st.button("Submit Diagnosis", type="primary", use_container_width=True)
-    with col2:
-        st.button("Reset", on_click=reset_app, use_container_width=False)
-        
-    st.divider()
+    # Sort diseases by probability in descending order
+    sorted_diseases = sorted(scores.items(), key=lambda item: item[1], reverse=True)
     
-    # Process user input gracefully
-    if submit:
-        if not symptoms_input:
-            st.error("❌ Please select at least one symptom to get a diagnosis prediction.")
-        else:
-            # Calculate and sort probabilities
-            scores = calculate_probabilities(symptoms_input)
-            sorted_diseases = sorted(scores.items(), key=lambda item: item[1], reverse=True)
-            
-            top_disease, top_prob = sorted_diseases[0]
-            
-            st.markdown("## 🔍 Diagnosis Results")
-            
-            # Highlight most probable disease with confidence level
-            confidence = get_confidence_level(top_prob)
-            
-            if confidence == "High":
-                st.success(f"**Most Probable Disease:** {top_disease} ({top_prob*100:.1f}%) — Confidence: {confidence}")
-            elif confidence == "Medium":
-                st.warning(f"**Most Probable Disease:** {top_disease} ({top_prob*100:.1f}%) — Confidence: {confidence}")
-            else:
-                st.error(f"**Most Probable Disease:** {top_disease} ({top_prob*100:.1f}%) — Confidence: {confidence}")
-            
-            # Show top 3 probable diseases with treatment plans
-            st.markdown("### 🏆 Top 3 Probable Conditions")
-            
-            for i in range(min(3, len(sorted_diseases))):
-                disease, prob = sorted_diseases[i]
-                conf = get_confidence_level(prob)
-                
-                # Render as an expandable section (card)
-                with st.expander(f"#{i+1}: {disease} — {prob*100:.1f}% ({conf} Confidence)", expanded=(i==0)):
-                    st.markdown(f"**🩺 Recommended Treatment:**\n{treatments[disease]}")
-                    
-            st.markdown("### 📊 All Disease Probabilities")
-            # Create a simple table or list for all probabilities (highest to lowest)
-            for disease, prob in sorted_diseases:
-                st.write(f"- **{disease}**: {prob*100:.1f}%")
+    # Format the response
+    results = [{"disease": d, "prob": p} for d, p in sorted_diseases]
+    
+    return jsonify({
+        "probabilities": results,
+        "treatments": treatments
+    })
 
 if __name__ == "__main__":
-    main()
+    print("Starting Medical Treatment Planner API on http://127.0.0.1:5000")
+    app.run(debug=True, port=5000)
