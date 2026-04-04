@@ -75,34 +75,6 @@ def calculate_probabilities(selected_symptoms):
         
     return scores
 
-def get_db_path():
-    if os.environ.get("VERCEL"):
-        return "/tmp/diagnosis_history.db"
-    return "diagnosis_history.db"
-
-def init_db():
-    try:
-        conn = sqlite3.connect(get_db_path())
-        c = conn.cursor()
-        c.execute('''
-            CREATE TABLE IF NOT EXISTS history (
-                id INTEGER PRIMARY KEY AUTOINCREMENT,
-                timestamp TEXT,
-                age INTEGER,
-                gender TEXT,
-                symptoms TEXT,
-                top_disease TEXT,
-                probability REAL
-            )
-        ''')
-        conn.commit()
-        conn.close()
-    except Exception as e:
-        print("WARNING: Could not initialize database (likely read-only FS):", e)
-
-# Initialize the database on startup
-init_db()
-
 app = Flask(__name__, static_url_path='', static_folder='.')
 
 @app.route('/')
@@ -129,49 +101,10 @@ def diagnose():
     # Format the response
     results = [{"disease": d, "prob": p} for d, p in sorted_diseases]
     
-    top_disease = results[0]["disease"] if results else "None"
-    top_prob = results[0]["prob"] if results else 0.0
-    
-    # Save to history database
-    try:
-        conn = sqlite3.connect(get_db_path())
-        c = conn.cursor()
-        c.execute("INSERT INTO history (timestamp, age, gender, symptoms, top_disease, probability) VALUES (?, ?, ?, ?, ?, ?)",
-                  (datetime.datetime.now().isoformat(), age, gender, ",".join(selected_symptoms), top_disease, top_prob))
-        conn.commit()
-        conn.close()
-    except Exception as e:
-        print("DB save error:", e)
-    
     return jsonify({
         "probabilities": results,
         "treatments": treatments
     })
-
-@app.route('/api/history', methods=['GET'])
-def get_history():
-    try:
-        conn = sqlite3.connect(get_db_path())
-        c = conn.cursor()
-        c.execute("SELECT id, timestamp, age, gender, symptoms, top_disease, probability FROM history ORDER BY timestamp DESC")
-        rows = c.fetchall()
-        conn.close()
-        
-        history = []
-        for row in rows:
-            history.append({
-                "id": row[0],
-                "timestamp": row[1],
-                "age": row[2],
-                "gender": row[3],
-                "symptoms": row[4].split(",") if row[4] else [],
-                "top_disease": row[5],
-                "probability": row[6]
-            })
-        return jsonify({"history": history})
-    except Exception as e:
-        print("DB get error:", e)
-        return jsonify({"history": [], "error": str(e)})
 
 if __name__ == "__main__":
     print("Starting Medical Treatment Planner API on http://127.0.0.1:5001")

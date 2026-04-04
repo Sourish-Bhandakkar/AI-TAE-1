@@ -267,7 +267,15 @@ document.getElementById("btn-submit").addEventListener("click", async () => {
         });
         
         // Fetch history after new diagnosis saved
-        fetchHistory();
+        saveToSessionHistory({
+            timestamp: new Date().toISOString(),
+            age: ageVal ? parseInt(ageVal) : "N/A",
+            gender: genderVal || "N/A",
+            symptoms: selectedSymptomsList,
+            top_disease: topDisease,
+            probability: topProbPct / 100 // keep it scaled 0-1 for history
+        });
+        renderHistory();
     } catch(err) {
         console.error("Diagnosis error:", err);
         errorMsg.innerHTML = `<span class="st-icon">❌</span><div class="st-alert-body">Error communicating with Python server. Is TAE.py running?</div>`;
@@ -291,39 +299,40 @@ document.getElementById("btn-reset").addEventListener("click", () => {
 // Initialize multiselect tags as empty
 renderTags();
 fetchSymptoms();
-fetchHistory();
+renderHistory();
 
-// History Fetching Logic
-async function fetchHistory() {
-    try {
-        const response = await fetch('/api/history');
-        const data = await response.json();
-        
-        const tbody = document.getElementById("history-table-body");
-        tbody.innerHTML = "";
-        
-        if (data.history && data.history.length > 0) {
-            data.history.forEach(row => {
-                const tr = document.createElement("tr");
-                const dateObj = new Date(row.timestamp);
-                const timeStr = dateObj.toLocaleString();
-                
-                tr.innerHTML = `
-                    <td>${timeStr}</td>
-                    <td>${row.age || "N/A"}</td>
-                    <td>${row.gender || "N/A"}</td>
-                    <td>${row.symptoms.join(", ")}</td>
-                    <td><strong style="color: var(--primary-color)">${row.top_disease}</strong></td>
-                    <td>${(row.probability * 100).toFixed(1)}%</td>
-                `;
-                tbody.appendChild(tr);
-            });
-        } else {
-            tbody.innerHTML = "<tr><td colspan='6' style='text-align: center'>No history found.</td></tr>";
-        }
-    } catch (err) {
-        console.error("Error fetching history:", err);
+function saveToSessionHistory(record) {
+    let history = JSON.parse(sessionStorage.getItem("diagnosisHistory") || "[]");
+    history.unshift(record); // Add to beginning
+    sessionStorage.setItem("diagnosisHistory", JSON.stringify(history));
+}
+
+// History Rendering Logic (Ephemeral Session)
+function renderHistory() {
+    const tbody = document.getElementById("history-table-body");
+    tbody.innerHTML = "";
+    
+    let history = JSON.parse(sessionStorage.getItem("diagnosisHistory") || "[]");
+    
+    if (history.length > 0) {
+        history.forEach(row => {
+            const tr = document.createElement("tr");
+            const dateObj = new Date(row.timestamp);
+            const timeStr = dateObj.toLocaleString();
+            
+            tr.innerHTML = `
+                <td>${timeStr}</td>
+                <td>${row.age}</td>
+                <td>${row.gender}</td>
+                <td>${row.symptoms.join(", ")}</td>
+                <td><strong style="color: var(--primary-color)">${row.top_disease}</strong></td>
+                <td>${(row.probability * 100).toFixed(1)}%</td>
+            `;
+            tbody.appendChild(tr);
+        });
+    } else {
+        tbody.innerHTML = "<tr><td colspan='6' style='text-align: center'>No history found for current session.</td></tr>";
     }
 }
 
-document.getElementById("btn-refresh-history").addEventListener("click", fetchHistory);
+document.getElementById("btn-refresh-history").addEventListener("click", renderHistory);
