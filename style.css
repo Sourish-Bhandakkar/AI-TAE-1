@@ -41,9 +41,41 @@ body {
 
 /* Layout container simulating Streamlit max-width */
 .st-container {
-    max-width: 730px;
+    max-width: 1100px;
     margin: 0 auto;
     padding: 3rem 1.5rem;
+}
+
+/* Premium UI Layout */
+.st-card {
+    background: rgba(38, 39, 48, 0.6);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: var(--border-radius-lg);
+    padding: 2rem;
+    box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.2);
+    margin-bottom: 2rem;
+    transition: transform var(--transition-speed), box-shadow var(--transition-speed);
+    position: relative;
+}
+
+#input-card {
+    z-index: 10; /* Ensures the dropdown overlaps other cards that follow in the DOM */
+}
+
+.st-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 12px 40px 0 rgba(0, 0, 0, 0.3);
+}
+
+.hide-on-desktop {
+    display: none;
+}
+@media (max-width: 767px) {
+    .hide-on-desktop {
+        display: block; /* Show divider on mobile between sections */
+    }
 }
 
 h1 { 
@@ -53,6 +85,7 @@ h1 {
     letter-spacing: -0.01em; 
     background: linear-gradient(45deg, var(--primary-color), #ff9999);
     -webkit-background-clip: text;
+    background-clip: text;
     -webkit-text-fill-color: transparent;
     display: inline-flex;
     align-items: center;
@@ -91,6 +124,51 @@ h4 { font-size: 1.1rem; font-weight: 600; margin-bottom: 0.75rem; }
 .st-warning { background-color: var(--warning-bg); color: var(--warning-text); }
 .st-error { background-color: var(--error-bg); color: var(--error-text); }
 .st-success { background-color: var(--success-bg); color: var(--success-text); }
+
+/* Text Inputs and Rows */
+.st-input-row {
+    display: flex;
+    gap: 1.5rem;
+    margin-bottom: 1.5rem;
+    flex-wrap: wrap;
+}
+
+.st-input-group {
+    flex: 1;
+    min-width: 150px;
+}
+
+.st-input-group label {
+    display: block;
+    margin-bottom: 0.5rem;
+    font-size: 0.9rem;
+    color: #e0e0e0;
+}
+
+.st-text-input {
+    width: 100%;
+    background-color: var(--secondary-bg-color);
+    border: 1px solid var(--border-color);
+    border-radius: var(--border-radius-sm);
+    padding: 0.6rem 0.8rem;
+    color: var(--text-color);
+    font-family: inherit;
+    font-size: 0.95rem;
+    outline: none;
+    transition: border-color var(--transition-speed), box-shadow var(--transition-speed), background-color var(--transition-speed);
+}
+
+.st-text-input:focus {
+    border-color: var(--primary-color);
+    box-shadow: 0 0 0 1px var(--primary-color);
+    background-color: rgba(255, 255, 255, 0.05);
+}
+
+select.st-text-input option {
+    background-color: #262730;
+    color: #fff;
+    padding: 10px;
+}
 
 /* Custom Multi-select Input */
 .st-multiselect-container {
@@ -308,6 +386,68 @@ h4 { font-size: 1.1rem; font-weight: 600; margin-bottom: 0.75rem; }
     border-radius: 4px;
     transition: width 1s ease-out;
     width: 0%; /* Initial state for animation */
+}
+
+/* Chart & Table additions */
+.st-chart-container {
+    background-color: var(--secondary-bg-color);
+    border: 1px solid var(--border-color);
+    border-radius: var(--border-radius-md);
+    padding: 1rem;
+    margin-top: 1rem;
+    position: relative;
+    height: 300px;
+    width: 100%;
+}
+
+.st-history-section {
+    margin-top: 2rem;
+}
+
+.st-table-container {
+    overflow-x: auto;
+    background-color: var(--secondary-bg-color);
+    border-radius: var(--border-radius-md);
+    border: 1px solid var(--border-color);
+}
+
+.st-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.9rem;
+    text-align: left;
+}
+
+.st-table th, .st-table td {
+    padding: 0.75rem 1rem;
+    border-bottom: 1px solid var(--border-color);
+}
+
+.st-table th {
+    background-color: rgba(255, 255, 255, 0.05);
+    color: #e0e0e0;
+    font-weight: 600;
+}
+
+.st-table tr:hover {
+    background-color: rgba(255, 255, 255, 0.03);
+}
+
+.st-btn-small {
+    font-family: inherit;
+    font-size: 0.8rem;
+    padding: 0.2rem 0.6rem;
+    border-radius: var(--border-radius-sm);
+    background-color: var(--secondary-bg-color);
+    color: var(--text-color);
+    border: 1px solid var(--border-color);
+    cursor: pointer;
+    vertical-align: middle;
+    margin-left: 1rem;
+}
+.st-btn-small:hover {
+    border-color: var(--primary-color);
+    color: var(--primary-color);
 }
 
 /* Colors based on confidence */

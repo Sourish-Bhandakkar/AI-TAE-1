@@ -1,6 +1,7 @@
 // UI Variables
 let availableSymptoms = [];
 let selectedSymptomsList = [];
+let diagnosisChartInstance = null;
 
 // DOM Elements
 const inputEl = document.getElementById("symptom-input");
@@ -106,6 +107,8 @@ function getConfidenceLevel(probability) {
 document.getElementById("btn-submit").addEventListener("click", async () => {
     const errorMsg = document.getElementById("error-message");
     const resultsContainer = document.getElementById("results-container");
+    const ageVal = document.getElementById("age-input").value;
+    const genderVal = document.getElementById("gender-input").value;
 
     if (selectedSymptomsList.length === 0) {
         // Reset message to default text
@@ -122,7 +125,11 @@ document.getElementById("btn-submit").addEventListener("click", async () => {
         const response = await fetch('/api/diagnose', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ symptoms: selectedSymptomsList })
+            body: JSON.stringify({ 
+                symptoms: selectedSymptomsList,
+                age: ageVal ? parseInt(ageVal) : 0,
+                gender: genderVal || "Not Specified"
+            })
         });
         
         if (!response.ok) {
@@ -181,34 +188,86 @@ document.getElementById("btn-submit").addEventListener("click", async () => {
             top3Container.appendChild(expander);
         }
 
-        // 3. Setup Progress Bars for all probabilities
-        const allProbContainer = document.getElementById("all-probabilities-container");
-        allProbContainer.innerHTML = "";
-
-        probabilities.forEach(item => {
-            const itemPct = (item.prob * 100).toFixed(1);
-            const confText = getConfidenceLevel(item.prob);
-            
-            let barClass = "bar-low";
-            if (confText === "High") barClass = "bar-high";
-            else if (confText === "Medium") barClass = "bar-medium";
-
-            const probRow = document.createElement("div");
-            probRow.className = "st-prob-row";
-            probRow.innerHTML = `
-                <div class="st-prob-label">${item.disease}</div>
-                <div class="st-prob-bar-container">
-                    <div class="st-prob-bar ${barClass}" style="width: 0%"></div>
-                </div>
-                <div class="st-prob-value">${itemPct}%</div>
-            `;
-            allProbContainer.appendChild(probRow);
-
-            // Animate progress bar slightly after insertion
-            setTimeout(() => {
-                probRow.querySelector('.st-prob-bar').style.width = `${itemPct}%`;
-            }, 50);
+        // 3. Setup Chart.js Graph
+        const ctx = document.getElementById("diagnosisChart").getContext("2d");
+        
+        const labels = probabilities.map(p => p.disease);
+        const dataVals = probabilities.map(p => (p.prob * 100).toFixed(1));
+        const bgColors = probabilities.map(p => {
+            const conf = getConfidenceLevel(p.prob);
+            if (conf === "High") return "rgba(0, 204, 102, 0.6)"; // Green
+            if (conf === "Medium") return "rgba(255, 170, 0, 0.6)"; // Yellow/Orange
+            return "rgba(255, 75, 75, 0.6)"; // Red
         });
+        const borderColors = probabilities.map(p => {
+            const conf = getConfidenceLevel(p.prob);
+            if (conf === "High") return "rgba(0, 204, 102, 1)";
+            if (conf === "Medium") return "rgba(255, 170, 0, 1)";
+            return "rgba(255, 75, 75, 1)";
+        });
+
+        const existingChart = Chart.getChart("diagnosisChart");
+        if (existingChart) {
+            existingChart.destroy();
+        }
+
+        new Chart(ctx, {
+            type: 'bar',
+            data: {
+                labels: labels,
+                datasets: [{
+                    label: 'Probability (%)',
+                    data: dataVals,
+                    backgroundColor: bgColors,
+                    borderColor: borderColors,
+                    borderWidth: 2,
+                    borderRadius: 8,
+                    barPercentage: 0.6
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                animation: {
+                    duration: 1000,
+                    easing: 'easeOutQuart'
+                },
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        max: 100,
+                        grid: { 
+                            color: 'rgba(255, 255, 255, 0.05)',
+                            borderDash: [5, 5]
+                        },
+                        ticks: { color: '#bbb' }
+                    },
+                    x: {
+                        grid: { display: false },
+                        ticks: { color: '#bbb', font: { weight: '500' } }
+                    }
+                },
+                plugins: {
+                    legend: { display: false },
+                    tooltip: {
+                        backgroundColor: 'rgba(38, 39, 48, 0.9)',
+                        titleColor: '#fff',
+                        bodyColor: '#fff',
+                        padding: 12,
+                        cornerRadius: 8,
+                        displayColors: false,
+                        callbacks: {
+                            label: function(context) {
+                                return context.parsed.y + '% Confidence';
+                            }
+                        }
+                    }
+                }
+            }
+        });
+        
+        // Fetch history after new diagnosis saved
+        fetchHistory();
     } catch(err) {
         console.error("Diagnosis error:", err);
         errorMsg.innerHTML = `<span class="st-icon">❌</span><div class="st-alert-body">Error communicating with Python server. Is TAE.py running?</div>`;
@@ -222,6 +281,8 @@ document.getElementById("btn-reset").addEventListener("click", () => {
     selectedSymptomsList = [];
     renderTags();
     inputEl.value = "";
+    document.getElementById("age-input").value = "";
+    document.getElementById("gender-input").value = "";
     
     document.getElementById("error-message").style.display = "none";
     document.getElementById("results-container").style.display = "none";
@@ -230,3 +291,39 @@ document.getElementById("btn-reset").addEventListener("click", () => {
 // Initialize multiselect tags as empty
 renderTags();
 fetchSymptoms();
+fetchHistory();
+
+// History Fetching Logic
+async function fetchHistory() {
+    try {
+        const response = await fetch('/api/history');
+        const data = await response.json();
+        
+        const tbody = document.getElementById("history-table-body");
+        tbody.innerHTML = "";
+        
+        if (data.history && data.history.length > 0) {
+            data.history.forEach(row => {
+                const tr = document.createElement("tr");
+                const dateObj = new Date(row.timestamp);
+                const timeStr = dateObj.toLocaleString();
+                
+                tr.innerHTML = `
+                    <td>${timeStr}</td>
+                    <td>${row.age || "N/A"}</td>
+                    <td>${row.gender || "N/A"}</td>
+                    <td>${row.symptoms.join(", ")}</td>
+                    <td><strong style="color: var(--primary-color)">${row.top_disease}</strong></td>
+                    <td>${(row.probability * 100).toFixed(1)}%</td>
+                `;
+                tbody.appendChild(tr);
+            });
+        } else {
+            tbody.innerHTML = "<tr><td colspan='6' style='text-align: center'>No history found.</td></tr>";
+        }
+    } catch (err) {
+        console.error("Error fetching history:", err);
+    }
+}
+
+document.getElementById("btn-refresh-history").addEventListener("click", fetchHistory);
